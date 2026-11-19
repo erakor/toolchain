@@ -55,7 +55,7 @@ jobs:
 
       - name: Lint
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: pnpm run --if-present lint --deny-warnings
+        run: pnpm run --if-present lint
 
       - name: Format
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}

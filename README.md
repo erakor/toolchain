@@ -46,8 +46,8 @@ and `noEmit: true`. A library that emits, or code that runs under plain Node, ov
 `package.json` here is `"private": true` on purpose: the package is installed from GitHub, never
 published to npm, so `files` and `exports` still apply.
 
-The reusable workflow runs `lint --deny-warnings`, so give a package's own `lint` script the same
-flag to keep local runs and CI in agreement.
+The reusable workflow runs the package's own `lint` script as is, so put `--deny-warnings` in that
+script to fail CI on warnings. Don't also pass it on the command line: oxlint rejects the flag twice.
 
 ## Requirements
 
