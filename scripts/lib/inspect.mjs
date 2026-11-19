@@ -1,3 +1,4 @@
+import { posix } from 'node:path'
 import { findPins } from './pins.mjs'
 
 const RENOVATE_FILES = [
@@ -22,22 +23,25 @@ export function inspect(consumer, io) {
   const add = (level, code, message) => issues.push({ level, code, message })
 
   const pins = []
-  const packageJsonPath =
-    packageDir === null ? null : `${packageDir}/package.json`.replace(/^\.\//, '')
-  const packageText = packageJsonPath === null ? null : io.readFile(repo, packageJsonPath)
+  const collect = (path, text) => {
+    for (const pin of findPins(text)) pins.push({ ...pin, where: path })
+  }
 
-  if (packageJsonPath !== null) {
-    if (packageText === null) {
-      add('error', 'no-package-json', `${packageJsonPath} not found`)
+  let pkg = null
+  if (packageDir !== null) {
+    const path = posix.join(packageDir, 'package.json')
+    const text = io.readFile(repo, path)
+    if (text === null) {
+      add('error', 'no-package-json', `${path} not found`)
     } else {
-      for (const pin of findPins(packageText)) pins.push({ ...pin, where: packageJsonPath })
+      collect(path, text)
+      pkg = JSON.parse(text)
     }
   }
 
   for (const name of io.listDir(repo, '.github/workflows')) {
     const path = `.github/workflows/${name}`
-    const text = io.readFile(repo, path)
-    for (const pin of text === null ? [] : findPins(text)) pins.push({ ...pin, where: path })
+    collect(path, io.readFile(repo, path) ?? '')
   }
 
   if (pins.length === 0) add('error', 'no-pins', 'nothing pins erakor/toolchain')
@@ -47,8 +51,7 @@ export function inspect(consumer, io) {
     const sha = io.resolveRef(pin.ref)
     resolved.add(sha)
     if (sha === io.latest.sha) continue
-    const status = io.compare(io.latest.tag, sha)
-    if (status === 'ahead') {
+    if (io.compare(io.latest.tag, sha) === 'ahead') {
       add(
         'warn',
         'untagged',
@@ -62,21 +65,12 @@ export function inspect(consumer, io) {
     add('error', 'mixed-pins', `${resolved.size} different toolchain commits are pinned`)
   }
 
-  if (packageText !== null) {
-    const lint = JSON.parse(packageText).scripts?.lint
-    if (lint !== undefined && /\boxlint\b/.test(lint) && !lint.includes('--deny-warnings')) {
-      add(
-        'error',
-        'lint-flag',
-        `"lint" is \`${lint}\`: add --deny-warnings so CI fails on warnings`,
-      )
-    }
+  const lint = pkg?.scripts?.lint
+  if (lint !== undefined && /\boxlint\b/.test(lint) && !lint.includes('--deny-warnings')) {
+    add('error', 'lint-flag', `"lint" is \`${lint}\`: add --deny-warnings so CI fails on warnings`)
   }
 
-  const renovate = RENOVATE_FILES.map((path) => io.readFile(repo, path)).find((text) =>
-    text?.includes(PRESET),
-  )
-  if (renovate === undefined) {
+  if (!RENOVATE_FILES.some((path) => io.readFile(repo, path)?.includes(PRESET))) {
     add('warn', 'no-renovate', `no renovate config extends ${PRESET}`)
   }
 

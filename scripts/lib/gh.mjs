@@ -11,51 +11,53 @@ export function gh(...args) {
   }
 }
 
-const isNotFound = (error) => /HTTP 404|Not Found/.test(error.message)
-
-/** A file's text from a repo's default branch, or null when it does not exist. */
-export function readFile(repo, path) {
+/** Run `fn`, returning `fallback` instead when GitHub answers 404. */
+function orNotFound(fallback, fn) {
   try {
-    return gh(
-      'api',
-      '-H',
-      'Accept: application/vnd.github.raw+json',
-      `repos/${repo}/contents/${path}`,
-    )
+    return fn()
   } catch (error) {
-    if (isNotFound(error)) return null
+    if (/HTTP 404|Not Found/.test(error.message)) return fallback
     throw error
   }
 }
 
+/** A file's text from a repo's default branch, or null when it does not exist. */
+export const readFile = (repo, path) =>
+  orNotFound(null, () =>
+    gh('api', '-H', 'Accept: application/vnd.github.raw+json', `repos/${repo}/contents/${path}`),
+  )
+
 /** File names in a repo folder, or an empty list when the folder does not exist. */
-export function listDir(repo, path) {
-  try {
-    const out = gh('api', `repos/${repo}/contents/${path}`, '--jq', '.[].name')
-    return out.split('\n').filter(Boolean)
-  } catch (error) {
-    if (isNotFound(error)) return []
-    throw error
+export const listDir = (repo, path) =>
+  orNotFound([], () =>
+    gh('api', `repos/${repo}/contents/${path}`, '--jq', '.[].name').split('\n').filter(Boolean),
+  )
+
+/** Run `fn(key)` once per key: a run asks about the same few refs for every pin it reads. */
+function memoize(fn) {
+  const cache = new Map()
+  return (...key) => {
+    const id = key.join('\0')
+    if (!cache.has(id)) cache.set(id, fn(...key))
+    return cache.get(id)
   }
 }
 
 /** The commit SHA a tag, branch or SHA of this repo points at. */
-export const resolveRef = (ref) =>
-  gh('api', `repos/${TOOLCHAIN}/commits/${ref}`, '--jq', '.sha').trim()
+export const resolveRef = memoize((ref) =>
+  gh('api', `repos/${TOOLCHAIN}/commits/${ref}`, '--jq', '.sha').trim(),
+)
 
 /** `behind`, `identical`, `ahead` or `diverged`: where `head` stands relative to `base`. */
-export const compare = (base, head) =>
-  gh('api', `repos/${TOOLCHAIN}/compare/${base}...${head}`, '--jq', '.status').trim()
+export const compare = memoize((base, head) =>
+  gh('api', `repos/${TOOLCHAIN}/compare/${base}...${head}`, '--jq', '.status').trim(),
+)
 
 /** The highest `vX.Y.Z` tag of this repo. */
 export function latestTag() {
-  const tags = gh('api', '--paginate', `repos/${TOOLCHAIN}/tags`, '--jq', '.[].name')
+  return gh('api', '--paginate', `repos/${TOOLCHAIN}/tags`, '--jq', '.[].name')
     .split('\n')
     .filter((name) => /^v\d+\.\d+\.\d+$/.test(name))
-  const parts = (tag) => tag.slice(1).split('.').map(Number)
-  tags.sort((a, b) => {
-    const [x, y] = [parts(a), parts(b)]
-    return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]
-  })
-  return tags.at(-1)
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .at(-1)
 }

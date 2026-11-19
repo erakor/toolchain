@@ -5,11 +5,10 @@
 //   node scripts/doctor.mjs --json
 //
 // Needs the `gh` CLI, signed in (or GH_TOKEN set).
-import { readFileSync } from 'node:fs'
 import { compare, latestTag, listDir, readFile, resolveRef } from './lib/gh.mjs'
+import { consumers } from './lib/consumers.mjs'
 import { inspect } from './lib/inspect.mjs'
 
-const consumers = JSON.parse(readFileSync(new URL('../consumers.json', import.meta.url), 'utf8'))
 const tag = latestTag()
 const latest = { tag, sha: resolveRef(tag) }
 const io = { readFile, listDir, resolveRef, compare, latest }
@@ -31,6 +30,6 @@ if (process.argv.includes('--json')) {
   }
 }
 
-process.exitCode = results.some(({ issues }) => issues.some(({ level }) => level === 'error'))
-  ? 1
-  : 0
+if (results.some(({ issues }) => issues.some(({ level }) => level === 'error'))) {
+  process.exitCode = 1
+}

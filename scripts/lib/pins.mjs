@@ -9,7 +9,7 @@ const WORKFLOW =
   /(uses:\s*erakor\/toolchain\/\.github\/workflows\/[\w.-]+\.ya?ml@)([^\s#]+)([ \t]*#[^\n]*)?/g
 
 /** True for a full commit SHA. */
-export const isSha = (ref) => SHA.test(ref)
+const isSha = (ref) => SHA.test(ref)
 
 /** Every pin in `text` as `{ kind, ref }`; `kind` is `dependency` or `workflow`. */
 export function findPins(text) {
