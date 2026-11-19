@@ -1,0 +1,48 @@
+# Runs this branch's node-checks.yml and toolchain package against the default branch of each
+# consumer marked "smoke": true in consumers.json, before a change reaches them through the
+# `v1` tag. A red job means a consumer's CI would break (or is already broken on its own main:
+# open that job's log and compare it with the consumer's latest run).
+name: Consumer smoke test
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/node-checks.yml
+      - .github/workflows/smoke.yml
+      - consumers.json
+      - oxfmt/**
+      - oxlint/**
+      - tsconfig/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  consumers:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - id: matrix
+        run: echo "matrix=$(jq -c '[.[] | select(.smoke)]' consumers.json)" >> "$GITHUB_OUTPUT"
+
+  smoke:
+    name: ${{ matrix.consumer.repo }}
+    needs: consumers
+    strategy:
+      fail-fast: false
+      matrix:
+        consumer: ${{ fromJSON(needs.consumers.outputs.matrix) }}
+    uses: ./.github/workflows/node-checks.yml
+    with:
+      repository: ${{ matrix.consumer.repo }}
+      working-directory: ${{ matrix.consumer.packageDir }}
+      toolchain-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+    secrets:
+      token: ${{ secrets.SYNC_TOKEN }}

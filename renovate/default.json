@@ -55,6 +55,12 @@
       "matchUpdateTypes": ["major"],
       "enabled": false
     },
-    { "matchManagers": ["github-actions"], "groupName": "github actions" }
+    { "matchManagers": ["github-actions"], "groupName": "github actions" },
+    {
+      "description": "The workflow pin and the package are one release of one repo: bump them in one PR, and without the wait that guards third-party releases. Last, so it beats the groups above.",
+      "matchPackageNames": ["erakor/toolchain", "@erakor/toolchain"],
+      "groupName": "erakor toolchain",
+      "minimumReleaseAge": null
+    }
   ]
 }
