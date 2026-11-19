@@ -5,3 +5,6 @@ export const ok1 = process.env.NEXT_PUBLIC_API_URL;
 export const ok2 = process.env.TRANSIT_TOKEN;
 export const ok3 = process.env.NEXT_PUBLIC_REVIEWED_KEY;
 export const ok4 = process.env.NEXT_PUBLIC_MONKEY_BUSINESS;
+export const { NEXT_PUBLIC_SESSION_SECRET: bad4 } = process.env; // line 8: flagged
+export const { NEXT_PUBLIC_SITE_URL: ok5, NEXT_PUBLIC_REVIEWED_KEY: ok6 } = process.env;
+export const { TRANSIT_TOKEN: ok7 } = process.env;

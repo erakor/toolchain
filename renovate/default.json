@@ -14,7 +14,7 @@
   "lockFileMaintenance": { "enabled": true },
   "packageRules": [
     { "matchUpdateTypes": ["minor"], "minimumReleaseAge": "7 days" },
-    { "matchUpdateTypes": ["major"], "minimumReleaseAge": "30 days", "groupName": null },
+    { "matchUpdateTypes": ["major"], "minimumReleaseAge": "30 days" },
     {
       "description": "Minor and patch updates in one PR per repo; majors stay one PR each.",
       "matchUpdateTypes": ["minor", "patch"],

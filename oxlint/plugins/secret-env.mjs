@@ -11,6 +11,8 @@
 //   "rules": { "secret-env/no-public-secret": ["error", { "allow": [] }] },
 //   "overrides": [{ "files": ["next.config.*"], "rules": { "secret-env/no-secret-in-config-env": "error" } }]
 
+// A heuristic on the variable name, not a guarantee: it misses names like AUTH, DSN or APIKEY.
+// Add a pattern here when a real secret slips through.
 const SECRET = /TOKEN|SECRET|PASSWORD|PRIVATE|CREDENTIAL|(^|_)KEY(_|$)/
 
 const MESSAGE =
@@ -31,6 +33,26 @@ function envName(node) {
   }
   if (!node.computed) return node.property.name
   return typeof node.property.value === 'string' ? node.property.value : null
+}
+
+/** True for the bare `process.env` expression. */
+function isProcessEnv(node) {
+  return (
+    node?.type === 'MemberExpression' &&
+    !node.computed &&
+    node.object?.type === 'Identifier' &&
+    node.object.name === 'process' &&
+    node.property?.name === 'env'
+  )
+}
+
+/** Names pulled out by `const { A, B: b, 'C': c } = process.env`, with the node to report on. */
+function destructuredNames(node) {
+  if (!isProcessEnv(node.init) || node.id?.type !== 'ObjectPattern') return []
+  return node.id.properties
+    .filter((property) => property.type === 'Property' && !property.computed)
+    .map((property) => ({ name: property.key?.name ?? property.key?.value, node: property }))
+    .filter((entry) => typeof entry.name === 'string')
 }
 
 /** True inside the value of an `env: { ... }` property (next.config's inlined env block). */
@@ -59,6 +81,18 @@ function allowed(context, name) {
   return (context.options[0]?.allow ?? []).includes(name)
 }
 
+function publicSecret(context, name) {
+  return (
+    name.startsWith('NEXT_PUBLIC_') &&
+    SECRET.test(name.slice('NEXT_PUBLIC_'.length)) &&
+    !allowed(context, name)
+  )
+}
+
+function configSecret(context, name) {
+  return SECRET.test(name) && !allowed(context, name)
+}
+
 const plugin = {
   meta: { name: 'secret-env' },
   rules: {
@@ -69,12 +103,13 @@ const plugin = {
         return {
           MemberExpression(node) {
             const name = envName(node)
-            if (
-              name?.startsWith('NEXT_PUBLIC_') &&
-              SECRET.test(name.slice('NEXT_PUBLIC_'.length)) &&
-              !allowed(context, name)
-            ) {
-              context.report({ node, message: MESSAGE })
+            if (name && publicSecret(context, name)) context.report({ node, message: MESSAGE })
+          },
+          VariableDeclarator(node) {
+            for (const entry of destructuredNames(node)) {
+              if (publicSecret(context, entry.name)) {
+                context.report({ node: entry.node, message: MESSAGE })
+              }
             }
           },
         }
@@ -87,8 +122,16 @@ const plugin = {
         return {
           MemberExpression(node) {
             const name = envName(node)
-            if (name && SECRET.test(name) && !allowed(context, name) && insideEnvBlock(node)) {
+            if (name && configSecret(context, name) && insideEnvBlock(node)) {
               context.report({ node, message: MESSAGE })
+            }
+          },
+          VariableDeclarator(node) {
+            if (!insideEnvBlock(node)) return
+            for (const entry of destructuredNames(node)) {
+              if (configSecret(context, entry.name)) {
+                context.report({ node: entry.node, message: MESSAGE })
+              }
             }
           },
         }

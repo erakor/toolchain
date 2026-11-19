@@ -22,12 +22,14 @@ function diagnostics() {
     .sort()
 }
 
-test('flags secret-looking NEXT_PUBLIC_ reads and secret reads in the next.config env block', () => {
+test('flags secret-looking NEXT_PUBLIC_ reads, including destructured, and secret reads in the next.config env block', () => {
   assert.deepEqual(diagnostics(), [
     'next.config.mjs:2 no-secret-in-config-env',
     'next.config.mjs:2 no-secret-in-config-env',
+    'next.config.mjs:3 no-secret-in-config-env',
     'reads.ts:1 no-public-secret',
     'reads.ts:2 no-public-secret',
     'reads.ts:3 no-public-secret',
+    'reads.ts:8 no-public-secret',
   ])
 })
