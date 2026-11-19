@@ -10,7 +10,8 @@ repo at a time.
 | Lint baseline (oxlint)                                       | `oxlint/base.json`, `oxlint/react.json`     | `.oxlintrc.json` `extends` it                                               |
 | Secret env var rule                                          | `oxlint/plugins/secret-env.mjs`             | `jsPlugins` in `.oxlintrc.json`                                             |
 | TypeScript                                                   | `tsconfig/base.json`, `tsconfig/react.json` | tsconfig `extends`                                                          |
-| CI checks                                                    | `.github/workflows/node-checks.yml`         | `uses: erakor/toolchain/.github/workflows/node-checks.yml@v1`               |
+| CI checks (JS/TS)                                            | `.github/workflows/node-checks.yml`         | `uses: erakor/toolchain/.github/workflows/node-checks.yml@v1`               |
+| CI checks (Swift: swift-format lint)                         | `.github/workflows/swift-checks.yml`        | `uses: erakor/toolchain/.github/workflows/swift-checks.yml@v1`              |
 | Dependency updates                                           | `renovate/default.json`                     | `renovate.json`: `"extends": ["github>erakor/toolchain//renovate/default"]` |
 | `.editorconfig`, `.gitattributes`, `.nvmrc`, `.swift-format` | `files/`, `swift/`                          | copied by `sync.yml`, as a PR in each repo                                  |
 
@@ -86,3 +87,34 @@ Change it here, run `pnpm lint && pnpm format:check && pnpm typecheck && pnpm te
 - Oxlint JS plugins (like `eslint-plugin-storybook` or `secret-env`) run in V8 and are alpha; keep
   them few. `eslint-plugin-react-compiler` as a JS plugin is known to be very slow.
 - `eslint-disable` comments keep working, including `react-hooks/` rule names.
+- oxfmt formats everything it finds: HTML, CSS and JSON included. A file that is copied verbatim
+  into committed build output (markdown-preview's `src/preview.html`) must go in `ignorePatterns`,
+  or a style-only reformat changes the bundle. Check with a rebuild and `git status`.
+- oxfmt already skips lockfiles (`pnpm-lock.yaml`, `package-lock.json`); don't list them.
+- A repo's `ignorePatterns` replaces whatever the shared config might set, since configs spread
+  the base rather than merge into it. That is why the base sets none.
+- pnpm 12 fails an install with `ERR_PNPM_IGNORED_BUILDS` until each dependency's build script is
+  approved or denied: `pnpm approve-builds '!esbuild'` writes `allowBuilds` to
+  `pnpm-workspace.yaml`. esbuild works without its postinstall (the platform package carries the
+  binary).
+- swift-format is not available in the Linux cloud containers, so the Swift reformat and the
+  counts come from a macOS CI run (`swift-checks.yml`, or `xcrun swift-format` locally).
+  Findings inside multi-line string literals (a sample document, say) change the string's text if
+  "fixed": check those by hand.
+
+## Swift 6 language mode
+
+Turning on Swift 6 (`-swift-version 6`, or `SWIFT_VERSION: "6.0"` in an XcodeGen project) makes
+data-race findings errors. The ones met so far, all isolation annotations with no behavior change:
+
+- A class conforming to an AppKit or WebKit delegate protocol (`WKURLSchemeHandler`,
+  `NSViewRepresentable`) is inferred `@MainActor`, so its static members are too. Callers that
+  are not main-actor, `HTMLExport.bundledCSS` or a test, need `@MainActor` themselves.
+- `Task { await f() }` as a single expression returns `f`'s result; if that is `Any?` it must be
+  Sendable. Discard it: `Task { _ = await f() }`.
+- A property read from `deinit` (a notification observer, say) is `nonisolated(unsafe)` when it is
+  set once and only removed in `deinit`.
+- In a `@MainActor` XCTest class, `setUpWithError` and `tearDownWithError` stay nonisolated and
+  cannot touch the class's properties; use `override func setUp() async throws` and
+  `tearDown() async throws`.
+- An `@objc` selector target (a `Coordinator: NSObject`) is `@MainActor` when it reads views.
