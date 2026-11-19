@@ -1,0 +1,59 @@
+# Reusable: swift-format lint for the erakor Swift repos. Call it from a repo's workflow:
+#
+#   jobs:
+#     swift-format:
+#       uses: erakor/toolchain/.github/workflows/swift-checks.yml@<sha>
+#       with:
+#         paths: Sources Tests   # what to lint, space separated; default 'Sources Tests'
+#         strict: false          # true once the code is clean: warnings then fail the job
+#
+# swift-format reads the repo's own .swift-format (a copy of swift/swift-format.json), so the
+# job only decides what to lint and whether findings fail it. It runs on a macOS runner because
+# that is where the Swift toolchain (and `xcrun swift-format`) is; the repo's build job stays in
+# the repo.
+name: Swift checks
+
+on:
+  workflow_call:
+    inputs:
+      paths:
+        description: Files and folders to lint, relative to the working directory, space separated.
+        type: string
+        default: 'Sources Tests'
+      strict:
+        description: Fail on warnings too (swift-format --strict).
+        type: boolean
+        default: false
+      working-directory:
+        description: Folder holding .swift-format and the sources.
+        type: string
+        default: '.'
+      runs-on:
+        description: macOS runner label.
+        type: string
+        default: macos-15
+
+permissions:
+  contents: read
+
+jobs:
+  swift-format:
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: swift-format lint
+        env:
+          PATHS: ${{ inputs.paths }}
+          STRICT: ${{ inputs.strict }}
+        run: |
+          flags=""
+          if [ "$STRICT" = "true" ]; then flags="--strict"; fi
+          # $PATHS is split on purpose: it is a list of paths. Inputs go through env, never
+          # into the script text.
+          # shellcheck disable=SC2086
+          xcrun swift-format lint --recursive $flags $PATHS
