@@ -22,6 +22,20 @@ on:
         description: Path to .nvmrc, from the repo root.
         type: string
         default: '.nvmrc'
+      # The three below exist for the consumer smoke test (smoke.yml); a repo calling this
+      # workflow for its own checks leaves them out.
+      repository:
+        description: Check out this repo (owner/name) instead of the caller's.
+        type: string
+        default: ''
+      ref:
+        description: Branch, tag or SHA to check out; default is the repo's default.
+        type: string
+        default: ''
+      toolchain-ref:
+        description: Install @erakor/toolchain from this ref instead of the lockfile's.
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -35,6 +49,9 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.ref }}
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
         with:
@@ -48,7 +65,24 @@ jobs:
 
       - name: Install dependencies
         id: install
-        run: pnpm install --frozen-lockfile
+        env:
+          TOOLCHAIN_REF: ${{ inputs.toolchain-ref }}
+        run: |
+          if [ -z "$TOOLCHAIN_REF" ]; then
+            pnpm install --frozen-lockfile
+          else
+            node -e "
+              const fs = require('fs')
+              const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+              for (const key of ['dependencies', 'devDependencies']) {
+                if (pkg[key]?.['@erakor/toolchain']) {
+                  pkg[key]['@erakor/toolchain'] = 'github:erakor/toolchain#' + process.env.TOOLCHAIN_REF
+                }
+              }
+              fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n')
+            "
+            pnpm install --no-frozen-lockfile
+          fi
 
       - name: Type check
         run: pnpm run --if-present typecheck

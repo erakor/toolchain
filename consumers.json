@@ -1,0 +1,29 @@
+[
+  {
+    "repo": "erakor/transit-board",
+    "packageDir": ".",
+    "smoke": true
+  },
+  {
+    "repo": "erakor/kinolog",
+    "packageDir": "frontend",
+    "smoke": true
+  },
+  {
+    "repo": "erakor/markdown-preview",
+    "packageDir": "renderer",
+    "smoke": true
+  },
+  {
+    "repo": "erakor/transit",
+    "packageDir": ".",
+    "smoke": false,
+    "note": "Runs its own CI job (pnpm check) instead of node-checks.yml, so there is nothing to smoke-test."
+  },
+  {
+    "repo": "erakor/alfresco",
+    "packageDir": null,
+    "smoke": false,
+    "note": "Swift only: no package.json, only the swift-checks.yml pin."
+  }
+]

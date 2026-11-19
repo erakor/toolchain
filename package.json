@@ -24,6 +24,8 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "test": "node --test test/*.test.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "bump": "node scripts/bump.mjs",
     "typecheck": "tsc"
   },
   "devDependencies": {

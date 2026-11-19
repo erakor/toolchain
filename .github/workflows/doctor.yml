@@ -1,0 +1,24 @@
+# Weekly drift report for the repos in consumers.json: stale or mixed pins, a lint script
+# without --deny-warnings, no Renovate preset. Fails when a repo has an error, so the run turns
+# red (and GitHub emails the owner) instead of the drift going unseen.
+name: Consumer doctor
+
+on:
+  schedule:
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  doctor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/doctor.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}

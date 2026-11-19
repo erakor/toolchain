@@ -1,0 +1,36 @@
+# Opens a pull request in each repo of consumers.json when a release tag (vX.Y.Z) is pushed,
+# moving its toolchain pins to that release. Needs the same SYNC_ENABLED variable and SYNC_TOKEN
+# secret as sync.yml (a fine-grained PAT with Contents and Pull requests read/write on the
+# consumers); without them the job is skipped. Run it by hand with a tag to redo a bump.
+name: Bump consumers
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to roll out (default is the latest)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    runs-on: ubuntu-24.04
+    if: ${{ vars.SYNC_ENABLED == 'true' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+      - name: Open the bump pull requests
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          gh auth setup-git
+          node scripts/bump.mjs --tag "$TAG"
