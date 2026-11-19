@@ -30,7 +30,7 @@ jobs:
       - name: Open the bump pull requests
         env:
           GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
-          TAG: ${{ inputs.tag || github.ref_name }}
+          TAG: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
         run: |
           gh auth setup-git
           node scripts/bump.mjs --tag "$TAG"

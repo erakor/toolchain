@@ -1,11 +1,13 @@
 // Reports how far each repo in consumers.json has drifted from the latest release: stale or
 // mixed pins, a lint script without --deny-warnings, no Renovate preset. Read-only.
 //
-//   node scripts/doctor.mjs            # exits 1 when any repo has an error
-//   node scripts/doctor.mjs --json
+//   pnpm consumers:doctor              # exits 1 when any repo has an error
+//   pnpm consumers:doctor --json
+//
+// (`pnpm doctor` is pnpm's own command, so the script has a different name.)
 //
 // Needs the `gh` CLI, signed in (or GH_TOKEN set).
-import { compare, latestTag, listDir, readFile, resolveRef } from './lib/gh.mjs'
+import { compare, latestTag, listDir, readFile, repoReadable, resolveRef } from './lib/gh.mjs'
 import { consumers } from './lib/consumers.mjs'
 import { inspect } from './lib/inspect.mjs'
 
@@ -13,9 +15,12 @@ const tag = latestTag()
 const latest = { tag, sha: resolveRef(tag) }
 const io = { readFile, listDir, resolveRef, compare, latest }
 
+const unreadable = [
+  { level: 'error', code: 'unreadable', message: 'repo not found, or the token cannot read it' },
+]
 const results = consumers.map((consumer) => ({
   repo: consumer.repo,
-  issues: inspect(consumer, io),
+  issues: repoReadable(consumer.repo) ? inspect(consumer, io) : unreadable,
 }))
 
 if (process.argv.includes('--json')) {

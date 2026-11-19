@@ -4,7 +4,9 @@ import { findPins } from './pins.mjs'
 const RENOVATE_FILES = [
   'renovate.json',
   '.github/renovate.json',
+  '.github/renovate.json5',
   'renovate.json5',
+  '.renovaterc',
   '.renovaterc.json',
 ]
 const PRESET = 'erakor/toolchain//renovate/default'
@@ -70,7 +72,8 @@ export function inspect(consumer, io) {
     add('error', 'lint-flag', `"lint" is \`${lint}\`: add --deny-warnings so CI fails on warnings`)
   }
 
-  if (!RENOVATE_FILES.some((path) => io.readFile(repo, path)?.includes(PRESET))) {
+  const inPackageJson = JSON.stringify(pkg?.renovate ?? '').includes(PRESET)
+  if (!inPackageJson && !RENOVATE_FILES.some((path) => io.readFile(repo, path)?.includes(PRESET))) {
     add('warn', 'no-renovate', `no renovate config extends ${PRESET}`)
   }
 

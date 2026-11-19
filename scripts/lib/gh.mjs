@@ -33,6 +33,9 @@ export const listDir = (repo, path) =>
     gh('api', `repos/${repo}/contents/${path}`, '--jq', '.[].name').split('\n').filter(Boolean),
   )
 
+/** False when the token cannot see the repo: its files would then all look missing. */
+export const repoReadable = (repo) => orNotFound(false, () => gh('api', `repos/${repo}`) !== '')
+
 /** Run `fn(key)` once per key: a run asks about the same few refs for every pin it reads. */
 function memoize(fn) {
   const cache = new Map()

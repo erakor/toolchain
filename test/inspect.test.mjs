@@ -94,3 +94,17 @@ test('a missing package.json and a repo that pins nothing are errors', () => {
   const issues = inspect(consumer, io({ 'renovate.json': renovate }))
   assert.deepEqual(codes(issues), ['no-package-json', 'no-pins'])
 })
+
+test('the Renovate preset counts in any of its config locations', () => {
+  const base = { 'package.json': packageJson(NEW), '.github/workflows/ci.yml': workflow(NEW) }
+  assert.deepEqual(inspect(consumer, io({ ...base, '.github/renovate.json5': renovate })), [])
+  assert.deepEqual(inspect(consumer, io({ ...base, '.renovaterc': renovate })), [])
+  const inPackage = {
+    ...base,
+    'package.json': JSON.stringify({
+      ...JSON.parse(base['package.json']),
+      renovate: JSON.parse(renovate),
+    }),
+  }
+  assert.deepEqual(inspect(consumer, io(inPackage)), [])
+})

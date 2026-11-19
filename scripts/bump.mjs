@@ -20,7 +20,7 @@ import { rewritePins } from './lib/pins.mjs'
 const { values } = parseArgs({
   options: { tag: { type: 'string' }, only: { type: 'string' }, 'dry-run': { type: 'boolean' } },
 })
-const tag = values.tag ?? latestTag()
+const tag = values.tag || latestTag()
 const sha = resolveRef(tag)
 const branch = `toolchain/${tag}`
 
@@ -52,6 +52,12 @@ function rewrite(path) {
   return true
 }
 
+/** True for a `toolchain/vX.Y.Z` branch of an older release than this run's. */
+function isOlderBump(headRefName) {
+  const other = /^toolchain\/(v\d+\.\d+\.\d+)$/.exec(headRefName)?.[1]
+  return other !== undefined && other.localeCompare(tag, undefined, { numeric: true }) < 0
+}
+
 function openPullRequest(repo) {
   const open = JSON.parse(
     gh('pr', 'list', '-R', repo, '--state', 'open', '--json', 'number,headRefName'),
@@ -63,7 +69,7 @@ function openPullRequest(repo) {
   }
   // An older, still-open bump is now redundant.
   for (const pr of open) {
-    if (pr.headRefName.startsWith('toolchain/') && pr.headRefName !== branch) {
+    if (isOlderBump(pr.headRefName)) {
       gh(
         'pr',
         'close',

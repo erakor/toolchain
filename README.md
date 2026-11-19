@@ -78,19 +78,19 @@ with Contents and Pull requests read/write). Without both the job is skipped, no
 `consumers.json` lists every repo that uses this one: its `packageDir` (where `package.json`
 lives, `null` for a Swift-only repo) and whether the smoke test covers it. Four pieces read it:
 
-| Piece                                              | When                        | What it does                                                                                           |
-| -------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `smoke.yml`                                        | a PR touching the shared CI | Runs this branch's `node-checks.yml` and package against each `smoke` consumer's default branch.       |
-| `bump-consumers.yml` (`scripts/bump.mjs`)          | a `vX.Y.Z` tag is pushed    | Opens a PR in each consumer moving every pin to that release; never moves a pin that is already ahead. |
-| `renovate/default.json`                            | Renovate's weekly run       | Opens one "erakor toolchain" PR per consumer covering the package and the workflow pin together.       |
-| `doctor.yml` (`scripts/doctor.mjs`, `pnpm doctor`) | Mondays, or by hand         | Reports stale or mixed pins, a `lint` script without `--deny-warnings`, a missing Renovate preset.     |
+| Piece                                                        | When                        | What it does                                                                                           |
+| ------------------------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `smoke.yml`                                                  | a PR touching the shared CI | Runs this branch's `node-checks.yml` and package against each `smoke` consumer's default branch.       |
+| `bump-consumers.yml` (`scripts/bump.mjs`)                    | a `vX.Y.Z` tag is pushed    | Opens a PR in each consumer moving every pin to that release; never moves a pin that is already ahead. |
+| `renovate/default.json`                                      | Renovate's weekly run       | Opens one "erakor toolchain" PR per consumer covering the package and the workflow pin together.       |
+| `doctor.yml` (`scripts/doctor.mjs`, `pnpm consumers:doctor`) | Mondays, or by hand         | Reports stale or mixed pins, a `lint` script without `--deny-warnings`, a missing Renovate preset.     |
 
 Before moving `v1`, open a PR: if `smoke.yml` is red for a consumer, its CI would break too (or it
 is already red on its own `main`; compare with its latest run). `bump-consumers.yml` needs the same
 `SYNC_ENABLED` variable and `SYNC_TOKEN` secret as file sync, and the token needs Contents and
 Pull requests read/write on every repo in `consumers.json`. The bump PR and Renovate's PR change
-the same lines; merge whichever lands first and the other goes quiet. `pnpm doctor` needs `gh`
-signed in; `pnpm bump --dry-run` clones each consumer and shows the diff without pushing.
+the same lines; merge whichever lands first and the other goes quiet. `pnpm consumers:doctor` needs `gh`
+signed in; `pnpm consumers:bump --dry-run` clones each consumer and shows the diff without pushing.
 
 Pin the package as a `vX.Y.Z` tag (`github:erakor/toolchain#v1.2.1`) so Renovate can update it; a
 bare commit SHA works for the bump script and the doctor but Renovate leaves it alone. A workflow

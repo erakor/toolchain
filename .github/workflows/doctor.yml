@@ -21,4 +21,4 @@ jobs:
           node-version-file: .nvmrc
       - run: node scripts/doctor.mjs
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || github.token }}

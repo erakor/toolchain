@@ -44,3 +44,5 @@ jobs:
       repository: ${{ matrix.consumer.repo }}
       working-directory: ${{ matrix.consumer.packageDir }}
       toolchain-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+    secrets:
+      token: ${{ secrets.SYNC_TOKEN }}

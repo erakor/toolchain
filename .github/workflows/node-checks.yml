@@ -33,6 +33,11 @@ on:
         type: string
         default: ''
 
+    secrets:
+      token:
+        description: Token that can read the `repository` above, if it is private.
+        required: false
+
 permissions:
   contents: read
 
@@ -47,6 +52,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ${{ inputs.repository }}
+          token: ${{ secrets.token || github.token }}
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
         with:
@@ -69,10 +75,16 @@ jobs:
             node -e "
               const fs = require('fs')
               const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+              let rewritten = 0
               for (const key of ['dependencies', 'devDependencies']) {
                 if (pkg[key]?.['@erakor/toolchain']) {
                   pkg[key]['@erakor/toolchain'] = 'github:erakor/toolchain#' + process.env.TOOLCHAIN_REF
+                  rewritten += 1
                 }
+              }
+              if (rewritten === 0) {
+                console.error('package.json does not list @erakor/toolchain: nothing to smoke-test')
+                process.exit(1)
               }
               fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n')
             "
