@@ -1,6 +1,6 @@
 {
   "name": "@erakor/toolchain",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Shared lint, format and TypeScript settings for the erakor repos.",
   "license": "MIT",
@@ -23,11 +23,13 @@
     "lint": "oxlint --deny-warnings --ignore-pattern test/fixtures",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "typecheck": "tsc"
   },
   "devDependencies": {
     "oxfmt": "^0.79.0",
-    "oxlint": "^1.94.0"
+    "oxlint": "^1.94.0",
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "oxfmt": ">=0.79.0",

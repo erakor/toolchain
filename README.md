@@ -62,7 +62,7 @@ parentheses around every arrow function parameter, double quotes in JSX.
 
 `v1` is a floating tag, moved by hand to the latest `v1.x.y`. Every repo that calls
 `node-checks.yml@v1` picks up a change the moment it moves, so move it only after
-`pnpm lint && pnpm format:check && pnpm test` pass on `main`. A repo that wants a frozen workflow
+`pnpm lint && pnpm format:check && pnpm typecheck && pnpm test` pass on `main`. A repo that wants a frozen workflow
 pins a `v1.x.y` tag or a commit SHA instead; Renovate keeps either current. The workflow's own
 third-party actions are pinned by SHA.
 
@@ -74,7 +74,7 @@ with Contents and Pull requests read/write). Without both the job is skipped, no
 
 ## Changing something
 
-Change it here, run `pnpm lint && pnpm format:check && pnpm test`, then tag a release
+Change it here, run `pnpm lint && pnpm format:check && pnpm typecheck && pnpm test`, then tag a release
 (`vX.Y.Z`, and move `v1` for the reusable workflow). Renovate opens the bump in each repo, and
 `sync.yml` opens a PR for copied files.
 

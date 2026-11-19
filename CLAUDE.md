@@ -10,4 +10,4 @@ Shared config for the erakor repos; see README.md for what lives where and how r
   name is silently ignored and oxfmt formats with its defaults (semicolons, double quotes).
 - A change consumers see is a release: bump `version` in package.json, tag `vX.Y.Z`, and move the
   `v1` tag (reusable workflows are referenced as `@v1`). A breaking change is `v2`.
-- Checks: `pnpm lint && pnpm format:check && pnpm test`.
+- Checks: `pnpm lint && pnpm format:check && pnpm typecheck && pnpm test`.
