@@ -1,0 +1,60 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Shared update policy for the erakor repos. Use with \"extends\": [\"github>erakor/toolchain//renovate/default\"].",
+  "extends": [
+    "config:recommended",
+    ":semanticCommitTypeAll(chore)",
+    "helpers:pinGitHubActionDigestsToSemver"
+  ],
+  "schedule": ["before 6am on monday"],
+  "timezone": "America/New_York",
+  "prConcurrentLimit": 10,
+  "minimumReleaseAge": "3 days",
+  "vulnerabilityAlerts": { "minimumReleaseAge": null, "schedule": ["at any time"] },
+  "lockFileMaintenance": { "enabled": true },
+  "packageRules": [
+    { "matchUpdateTypes": ["minor"], "minimumReleaseAge": "7 days" },
+    { "matchUpdateTypes": ["major"], "minimumReleaseAge": "30 days", "groupName": null },
+    {
+      "description": "Minor and patch updates in one PR per repo; majors stay one PR each.",
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "non-major dependencies"
+    },
+    {
+      "matchPackageNames": [
+        "next",
+        "@next/**",
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ],
+      "groupName": "next and react"
+    },
+    {
+      "description": "@storybook/*, vitest and vite bound each other's majors.",
+      "matchPackageNames": [
+        "storybook",
+        "@storybook/**",
+        "eslint-plugin-storybook",
+        "vitest",
+        "@vitest/**",
+        "vite",
+        "@vitejs/**"
+      ],
+      "groupName": "vite tooling"
+    },
+    { "matchPackageNames": ["tailwindcss", "@tailwindcss/**"], "groupName": "tailwind" },
+    {
+      "matchPackageNames": ["oxlint", "oxfmt", "oxlint-*", "@erakor/toolchain"],
+      "groupName": "lint and format"
+    },
+    {
+      "description": "Tracks the runtime major in .nvmrc; bump by hand alongside Node.",
+      "matchPackageNames": ["@types/node"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    { "matchManagers": ["github-actions"], "groupName": "github actions" }
+  ]
+}

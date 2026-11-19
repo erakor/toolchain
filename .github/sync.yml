@@ -1,0 +1,29 @@
+# Files copied verbatim into each repo by .github/workflows/sync.yml, as a pull request there.
+# Anything a config can `extends` or import (oxlint, oxfmt, tsconfig) comes from the package
+# instead, so it isn't listed here.
+group:
+  - files:
+      - source: files/editorconfig
+        dest: .editorconfig
+      - source: files/gitattributes
+        dest: .gitattributes
+    repos: |
+      erakor/transit-board
+      erakor/kinolog
+      erakor/markdown-preview
+      erakor/alfresco
+
+  - files:
+      - source: files/nvmrc
+        dest: .nvmrc
+    repos: |
+      erakor/transit-board
+      erakor/kinolog
+      erakor/markdown-preview
+
+  - files:
+      - source: swift/swift-format.json
+        dest: .swift-format
+    repos: |
+      erakor/markdown-preview
+      erakor/alfresco

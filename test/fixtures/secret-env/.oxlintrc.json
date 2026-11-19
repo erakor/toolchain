@@ -1,0 +1,8 @@
+{
+  "jsPlugins": ["../../../oxlint/plugins/secret-env.mjs"],
+  "categories": { "correctness": "off" },
+  "rules": { "secret-env/no-public-secret": ["error", { "allow": ["NEXT_PUBLIC_REVIEWED_KEY"] }] },
+  "overrides": [
+    { "files": ["next.config.*"], "rules": { "secret-env/no-secret-in-config-env": "error" } }
+  ]
+}

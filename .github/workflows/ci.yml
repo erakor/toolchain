@@ -1,0 +1,18 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The toolchain checks itself with the same reusable workflow the other repos call.
+  checks:
+    uses: ./.github/workflows/node-checks.yml

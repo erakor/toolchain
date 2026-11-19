@@ -1,0 +1,38 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "extends": ["./base.json"],
+  "plugins": ["typescript", "unicorn", "oxc", "import", "react", "jsx-a11y"],
+  "env": {
+    "browser": true
+  },
+  "settings": {
+    "react": {
+      "version": "19"
+    }
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    "react/jsx-key": "error",
+    "react/no-children-prop": "error",
+    "react/no-danger-with-children": "error",
+    "react/no-unescaped-entities": "error",
+    "react/react-in-jsx-scope": "off",
+    "jsx-a11y/alt-text": "warn",
+    "jsx-a11y/aria-props": "warn",
+    "jsx-a11y/aria-proptypes": "warn",
+    "jsx-a11y/role-has-required-aria-props": "warn",
+    "react/display-name": "error",
+    "react/jsx-no-comment-textnodes": "error",
+    "react/unsupported-syntax": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["**/components/ui/**"],
+      "rules": {
+        "jsx-a11y/heading-has-content": "off",
+        "jsx-a11y/anchor-has-content": "off"
+      }
+    }
+  ]
+}
