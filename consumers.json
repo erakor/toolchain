@@ -26,6 +26,11 @@
     "smoke": true
   },
   {
+    "repo": "erakor/katremil",
+    "packageDir": ".",
+    "smoke": true
+  },
+  {
     "repo": "erakor/alfresco",
     "packageDir": null,
     "smoke": false,

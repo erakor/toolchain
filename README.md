@@ -1,7 +1,7 @@
 # toolchain
 
 Shared lint, format, TypeScript and editor settings for the erakor repos
-(transit-board, kinolog, markdown-preview, transit, taime, alfresco), so they stay in step instead of drifting one
+(transit-board, kinolog, markdown-preview, transit, taime, katremil, alfresco), so they stay in step instead of drifting one
 repo at a time.
 
 | What                                                         | Where                                       | How a repo gets it                                                          |
