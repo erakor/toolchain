@@ -21,6 +21,11 @@
     "note": "Runs its own CI job (pnpm check) instead of node-checks.yml, so there is nothing to smoke-test."
   },
   {
+    "repo": "erakor/taime",
+    "packageDir": ".",
+    "smoke": true
+  },
+  {
     "repo": "erakor/alfresco",
     "packageDir": null,
     "smoke": false,

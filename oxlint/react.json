@@ -24,14 +24,26 @@
     "jsx-a11y/role-has-required-aria-props": "warn",
     "react/display-name": "error",
     "react/jsx-no-comment-textnodes": "error",
-    "react/unsupported-syntax": "warn"
+    "react/unsupported-syntax": "warn",
+    "jsx-a11y/label-has-associated-control": [
+      "error",
+      {
+        "controlComponents": ["Input", "Textarea", "Checkbox", "Switch"]
+      }
+    ]
   },
   "overrides": [
     {
-      "files": ["**/components/ui/**"],
+      "files": ["**/components/ui/**", "**/hooks/use-mobile.ts"],
       "rules": {
         "jsx-a11y/heading-has-content": "off",
-        "jsx-a11y/anchor-has-content": "off"
+        "jsx-a11y/anchor-has-content": "off",
+        "jsx-a11y/prefer-tag-over-role": "off",
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off",
+        "react/set-state-in-effect": "off",
+        "react/purity": "off",
+        "eqeqeq": "off"
       }
     }
   ]

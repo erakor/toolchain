@@ -1,13 +1,14 @@
 # toolchain
 
 Shared lint, format, TypeScript and editor settings for the erakor repos
-(transit-board, kinolog, markdown-preview, alfresco), so they stay in step instead of drifting one
+(transit-board, kinolog, markdown-preview, transit, taime, alfresco), so they stay in step instead of drifting one
 repo at a time.
 
 | What                                                         | Where                                       | How a repo gets it                                                          |
 | ------------------------------------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------- |
 | Formatter style (oxfmt)                                      | `oxfmt/index.mjs`                           | `oxfmt.config.ts` spreads it                                                |
 | Lint baseline (oxlint)                                       | `oxlint/base.json`, `oxlint/react.json`     | `.oxlintrc.json` `extends` it                                               |
+| Unused code (knip)                                           | `knip/index.mjs`                            | `knip.config.ts` re-exports or spreads it                                   |
 | Secret env var rule                                          | `oxlint/plugins/secret-env.mjs`             | `jsPlugins` in `.oxlintrc.json`                                             |
 | TypeScript                                                   | `tsconfig/base.json`, `tsconfig/react.json` | tsconfig `extends`                                                          |
 | CI checks (JS/TS)                                            | `.github/workflows/node-checks.yml`         | `uses: erakor/toolchain/.github/workflows/node-checks.yml@v1`               |
@@ -31,6 +32,10 @@ const config = { ...base, ignorePatterns: ['dist/'] }
 export default config
 ```
 
+oxlint and oxfmt both skip what `.gitignore` lists, so build output (`dist/`,
+`storybook-static/`) needs no `ignorePatterns`; list only files that are committed but not
+formatted or linted by hand (generated or vendored code).
+
 `.oxlintrc.json`:
 
 ```json
@@ -40,12 +45,32 @@ export default config
 }
 ```
 
+`knip.config.ts` (only if the package runs knip):
+
+```ts
+export { default } from '@erakor/toolchain/knip'
+```
+
 `tsconfig.json`: `"extends": "@erakor/toolchain/tsconfig/react.json"`, then only what the project
 adds (paths, includes, framework plugins). The base targets apps: `moduleResolution: "bundler"`
 and `noEmit: true`. A library that emits, or code that runs under plain Node, overrides both.
 
 `package.json` here is `"private": true` on purpose: the package is installed from GitHub, never
 published to npm, so `files` and `exports` still apply.
+
+A repo's workflow calls the reusable one and keeps its own triggers and concurrency. Group pull
+requests by ref so a new push cancels the outdated run, and pushes to `main` by commit so every
+merge keeps its own result:
+
+```yaml
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    uses: erakor/toolchain/.github/workflows/node-checks.yml@<sha> # vX.Y.Z
+```
 
 The reusable workflow runs the package's own `lint` script as is, so put `--deny-warnings` in that
 script to fail CI on warnings. Don't also pass it on the command line: oxlint rejects the flag twice.
@@ -102,6 +127,14 @@ Change it here and run `pnpm lint && pnpm format:check && pnpm typecheck && pnpm
 (the smoke test runs), merge it, then tag a release (`vX.Y.Z`, and move `v1` for the reusable
 workflow). The tag opens a bump PR in each consumer, Renovate catches any it missed, and
 `sync.yml` opens a PR for copied files.
+
+## shadcn/ui
+
+`oxlint/react.json` and `knip/index.mjs` treat `**/components/ui/**` (and shadcn's
+`hooks/use-mobile.ts`) as vendored registry code: the lint rules the stock components break are
+off there, and knip ignores their unused exports. `label-has-associated-control` knows that
+shadcn's `Input`, `Textarea`, `Checkbox` and `Switch` are form controls, so wrapping one in a
+`<label>` passes.
 
 ## Gotchas found while migrating
 
