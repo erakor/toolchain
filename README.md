@@ -8,7 +8,7 @@ repo at a time.
 | ------------------------------------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------- |
 | Formatter style (oxfmt)                                      | `oxfmt/index.mjs`                           | `oxfmt.config.ts` spreads it                                                |
 | Lint baseline (oxlint)                                       | `oxlint/base.json`, `oxlint/react.json`     | `.oxlintrc.json` `extends` it                                               |
-| Unused code (knip)                                           | `knip/index.mjs`                            | `knip.config.ts` re-exports or spreads it                                   |
+| shadcn/ui exemptions (oxlint, knip)                          | `oxlint/shadcn.json`, `knip/shadcn.mjs`     | opt in: see [shadcn/ui](#shadcnui)                                          |
 | Secret env var rule                                          | `oxlint/plugins/secret-env.mjs`             | `jsPlugins` in `.oxlintrc.json`                                             |
 | TypeScript                                                   | `tsconfig/base.json`, `tsconfig/react.json` | tsconfig `extends`                                                          |
 | CI checks (JS/TS)                                            | `.github/workflows/node-checks.yml`         | `uses: erakor/toolchain/.github/workflows/node-checks.yml@v1`               |
@@ -43,12 +43,6 @@ formatted or linted by hand (generated or vendored code).
   "extends": ["./node_modules/@erakor/toolchain/oxlint/react.json"],
   "rules": {}
 }
-```
-
-`knip.config.ts` (only if the package runs knip):
-
-```ts
-export { default } from '@erakor/toolchain/knip'
 ```
 
 `tsconfig.json`: `"extends": "@erakor/toolchain/tsconfig/react.json"`, then only what the project
@@ -130,11 +124,35 @@ workflow). The tag opens a bump PR in each consumer, Renovate catches any it mis
 
 ## shadcn/ui
 
-`oxlint/react.json` and `knip/index.mjs` treat `**/components/ui/**` (and shadcn's
-`hooks/use-mobile.ts`) as vendored registry code: the lint rules the stock components break are
-off there, and knip ignores their unused exports. `label-has-associated-control` knows that
-shadcn's `Input`, `Textarea`, `Checkbox` and `Switch` are form controls, so wrapping one in a
-`<label>` passes.
+A package that vendors shadcn/ui components opts in to two configs. Code under
+`components/ui/` is not exempted otherwise, since a repo may keep its own components there.
+
+`.oxlintrc.json` adds `oxlint/shadcn.json` after the React baseline. It turns off the rules the
+stock registry components break, in `**/components/ui/**` and shadcn's `hooks/use-mobile.ts`,
+and tells `label-has-associated-control` that `Input`, `Textarea`, `Checkbox` and `Switch` are
+form controls, so wrapping one in a `<label>` passes:
+
+```json
+{
+  "extends": [
+    "./node_modules/@erakor/toolchain/oxlint/react.json",
+    "./node_modules/@erakor/toolchain/oxlint/shadcn.json"
+  ]
+}
+```
+
+`knip.config.ts` ignores the components' unused exports (unused files and dependencies there are
+still reported):
+
+```ts
+export { default } from '@erakor/toolchain/knip/shadcn'
+```
+
+A package without shadcn needs no knip config: knip's defaults are the baseline.
+
+`oxlint/react.json` still exempts `**/components/ui/**` from `heading-has-content` and
+`anchor-has-content` for every package, as it did before `shadcn.json` existed; v2 drops that in
+favour of the opt-in.
 
 ## Gotchas found while migrating
 

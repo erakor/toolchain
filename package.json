@@ -12,9 +12,9 @@
   ],
   "type": "module",
   "exports": {
-    "./knip": {
-      "types": "./knip/index.d.mts",
-      "default": "./knip/index.mjs"
+    "./knip/shadcn": {
+      "types": "./knip/shadcn.d.mts",
+      "default": "./knip/shadcn.mjs"
     },
     "./oxfmt": {
       "types": "./oxfmt/index.d.mts",
