@@ -10,6 +10,7 @@ on:
       - .github/workflows/node-checks.yml
       - .github/workflows/smoke.yml
       - consumers.json
+      - knip/**
       - oxfmt/**
       - oxlint/**
       - tsconfig/**

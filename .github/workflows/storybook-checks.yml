@@ -1,0 +1,71 @@
+# Reusable: builds a package's Storybook and opens every story in Chromium, failing when one
+# throws or shows Storybook's error screen. Call it next to node-checks.yml:
+#
+#   jobs:
+#     storybook:
+#       uses: erakor/toolchain/.github/workflows/storybook-checks.yml@v1
+#       with:
+#         working-directory: frontend   # where package.json is; default '.'
+#
+# The package needs a `build-storybook` script (or names its own in `build-script`) and
+# `playwright` in its devDependencies; the smoke test is the toolchain's `erakor-storybook-smoke`.
+name: Storybook checks
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: Folder holding package.json and the lockfile.
+        type: string
+        default: '.'
+      node-version-file:
+        description: Path to .nvmrc, from the repo root.
+        type: string
+        default: '.nvmrc'
+      build-script:
+        description: The package script that builds Storybook.
+        type: string
+        default: 'build-storybook'
+      output-dir:
+        description: Where that script writes the static Storybook, from working-directory.
+        type: string
+        default: 'storybook-static'
+
+permissions:
+  contents: read
+
+jobs:
+  storybook:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: ${{ inputs.working-directory }}/package.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: ${{ inputs.node-version-file }}
+          cache: pnpm
+          cache-dependency-path: ${{ inputs.working-directory }}/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build Storybook
+        env:
+          BUILD_SCRIPT: ${{ inputs.build-script }}
+        run: pnpm run "$BUILD_SCRIPT"
+
+      - name: Open every story
+        env:
+          OUTPUT_DIR: ${{ inputs.output-dir }}
+        run: pnpm exec erakor-storybook-smoke "$OUTPUT_DIR"

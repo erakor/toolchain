@@ -1,0 +1,4 @@
+{
+  "extends": ["../../../oxlint/storybook.json"],
+  "categories": { "correctness": "off" }
+}

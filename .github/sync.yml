@@ -11,6 +11,8 @@ group:
       erakor/transit-board
       erakor/kinolog
       erakor/markdown-preview
+      erakor/taime
+      erakor/katremil
       erakor/alfresco
 
   - files:
@@ -20,6 +22,8 @@ group:
       erakor/transit-board
       erakor/kinolog
       erakor/markdown-preview
+      erakor/taime
+      erakor/katremil
 
   - files:
       - source: swift/swift-format.json

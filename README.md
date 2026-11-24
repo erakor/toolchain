@@ -1,25 +1,28 @@
 # toolchain
 
-Shared lint, format, TypeScript and editor settings for the erakor repos
-(transit-board, kinolog, markdown-preview, transit, taime, katremil, alfresco), so they stay in step instead of drifting one
-repo at a time.
+Shared lint, format, TypeScript, CI and editor settings for the erakor repos (transit-board,
+kinolog, markdown-preview, transit, taime, katremil, alfresco), so they stay in step instead of
+drifting one repo at a time.
 
-| What                                                         | Where                                       | How a repo gets it                                                          |
-| ------------------------------------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------- |
-| Formatter style (oxfmt)                                      | `oxfmt/index.mjs`                           | `oxfmt.config.ts` spreads it                                                |
-| Lint baseline (oxlint)                                       | `oxlint/base.json`, `oxlint/react.json`     | `.oxlintrc.json` `extends` it                                               |
-| shadcn/ui exemptions (oxlint, knip)                          | `oxlint/shadcn.json`, `knip/shadcn.mjs`     | opt in: see [shadcn/ui](#shadcnui)                                          |
-| Secret env var rule                                          | `oxlint/plugins/secret-env.mjs`             | `jsPlugins` in `.oxlintrc.json`                                             |
-| TypeScript                                                   | `tsconfig/base.json`, `tsconfig/react.json` | tsconfig `extends`                                                          |
-| CI checks (JS/TS)                                            | `.github/workflows/node-checks.yml`         | `uses: erakor/toolchain/.github/workflows/node-checks.yml@v1`               |
-| CI checks (Swift: swift-format lint)                         | `.github/workflows/swift-checks.yml`        | `uses: erakor/toolchain/.github/workflows/swift-checks.yml@v1`              |
-| Dependency updates                                           | `renovate/default.json`                     | `renovate.json`: `"extends": ["github>erakor/toolchain//renovate/default"]` |
-| `.editorconfig`, `.gitattributes`, `.nvmrc`, `.swift-format` | `files/`, `swift/`                          | copied by `sync.yml`, as a PR in each repo                                  |
+| What                                                         | Where                                    | How a repo gets it                                                          |
+| ------------------------------------------------------------ | ---------------------------------------- | --------------------------------------------------------------------------- |
+| Formatter style (oxfmt)                                      | `oxfmt/index.mjs`                        | `oxfmt.config.ts` spreads it                                                |
+| Lint baseline (oxlint)                                       | `oxlint/base.json`, `oxlint/react.json`  | `.oxlintrc.json` `extends` it                                               |
+| shadcn/ui exemptions (oxlint, knip)                          | `oxlint/shadcn.json`, `knip/shadcn.mjs`  | opt in: see [shadcn/ui](#shadcnui)                                          |
+| Storybook lint (eslint-plugin-storybook)                     | `oxlint/storybook.json`                  | opt in: see [Storybook](#storybook)                                         |
+| Secret env var rule                                          | `oxlint/plugins/secret-env.mjs`          | `jsPlugins` in `.oxlintrc.json`                                             |
+| TypeScript                                                   | `tsconfig/{base,react,node}.json`        | tsconfig `extends`                                                          |
+| Tailwind class sorting (oxfmt)                               | `tailwind()` in `oxfmt/index.mjs`        | `sortTailwindcss: tailwind('src/index.css')`                                |
+| CI checks (JS/TS)                                            | `.github/workflows/node-checks.yml`      | `uses: erakor/toolchain/.github/workflows/node-checks.yml@v1`               |
+| CI checks (Storybook: build, open every story)               | `.github/workflows/storybook-checks.yml` | `uses: erakor/toolchain/.github/workflows/storybook-checks.yml@v1`          |
+| CI checks (Swift: swift-format lint)                         | `.github/workflows/swift-checks.yml`     | `uses: erakor/toolchain/.github/workflows/swift-checks.yml@v1`              |
+| Dependency updates                                           | `renovate/default.json`                  | `renovate.json`: `"extends": ["github>erakor/toolchain//renovate/default"]` |
+| `.editorconfig`, `.gitattributes`, `.nvmrc`, `.swift-format` | `files/`, `swift/`                       | copied by `sync.yml`, as a PR in each repo                                  |
 
 ## Using it in a JS/TS package
 
 ```bash
-pnpm add -D oxlint oxfmt "@erakor/toolchain@github:erakor/toolchain#v1.2.1"
+pnpm add -D oxlint oxfmt "@erakor/toolchain@github:erakor/toolchain#v1.5.0"
 ```
 
 `oxfmt.config.ts` (oxfmt finds only `.oxfmtrc.json(c)` and `oxfmt.config.ts`/`.mts`, not `.mjs`):
@@ -49,6 +52,21 @@ formatted or linted by hand (generated or vendored code).
 adds (paths, includes, framework plugins). The base targets apps: `moduleResolution: "bundler"`
 and `noEmit: true`. A library that emits, or code that runs under plain Node, overrides both.
 
+Config files that Node runs itself (`vite.config.ts`, a `tsconfig.node.json` project) extend
+`tsconfig/node.json` instead: the base plus `types: ["node"]`, `nodenext` resolution and
+`allowImportingTsExtensions`, which Node's type stripping needs for relative `.ts` imports.
+
+A package that uses Tailwind sorts classes with the shared helper, which also sorts the strings
+passed to `cn()` and `cva()`:
+
+```ts
+import base, { tailwind } from '@erakor/toolchain/oxfmt'
+
+const config = { ...base, sortTailwindcss: tailwind('src/index.css') }
+
+export default config
+```
+
 `package.json` here is `"private": true` on purpose: the package is installed from GitHub, never
 published to npm, so `files` and `exports` still apply.
 
@@ -65,6 +83,9 @@ jobs:
   checks:
     uses: erakor/toolchain/.github/workflows/node-checks.yml@<sha> # vX.Y.Z
 ```
+
+`node-checks.yml` also runs the package's `build` script when called `with: { build: true }`, so a
+repo whose build is its only extra check needs no job of its own.
 
 The reusable workflow runs the package's own `lint` script as is, so put `--deny-warnings` in that
 script to fail CI on warnings. Don't also pass it on the command line: oxlint rejects the flag twice.
@@ -111,7 +132,7 @@ Pull requests read/write on every repo in `consumers.json`. The bump PR and Reno
 the same lines; merge whichever lands first and the other goes quiet. `pnpm consumers:doctor` needs `gh`
 signed in; `pnpm consumers:bump --dry-run` clones each consumer and shows the diff without pushing.
 
-Pin the package as a `vX.Y.Z` tag (`github:erakor/toolchain#v1.2.1`) so Renovate can update it; a
+Pin the package as a `vX.Y.Z` tag (`github:erakor/toolchain#v1.5.0`) so Renovate can update it; a
 bare commit SHA works for the bump script and the doctor but Renovate leaves it alone. A workflow
 pin is a commit SHA with a `# vX.Y.Z` comment, which Renovate and the bump script both keep.
 
@@ -153,6 +174,37 @@ A package without shadcn needs no knip config: knip's defaults are the baseline.
 `oxlint/react.json` still exempts `**/components/ui/**` from `heading-has-content` and
 `anchor-has-content` for every package, as it did before `shadcn.json` existed; v2 drops that in
 favour of the opt-in.
+
+## Storybook
+
+A package with Storybook opts in to three pieces. Add `eslint-plugin-storybook` and `playwright`
+to its devDependencies (the smoke test uses the package's own Playwright), then:
+
+`.oxlintrc.json` adds `oxlint/storybook.json`, which runs the Storybook rules on `*.stories.*`
+files and `no-uninstalled-addons` on `.storybook/main.*`:
+
+```json
+{
+  "extends": [
+    "./node_modules/@erakor/toolchain/oxlint/react.json",
+    "./node_modules/@erakor/toolchain/oxlint/storybook.json"
+  ]
+}
+```
+
+A workflow job builds Storybook and opens every story in Chromium:
+
+```yaml
+jobs:
+  storybook:
+    uses: erakor/toolchain/.github/workflows/storybook-checks.yml@<sha> # vX.Y.Z
+```
+
+The same smoke test runs locally after a build, from the package:
+`pnpm build-storybook && pnpm exec erakor-storybook-smoke` (the folder defaults to
+`storybook-static`). `.storybook/main.ts` and `preview.tsx` stay in each repo: frameworks
+(`@storybook/nextjs-vite`, `@storybook/react-vite`) and theme switching differ, and what is left
+in common is a stories glob.
 
 ## Gotchas found while migrating
 
