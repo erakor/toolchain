@@ -1,8 +1,22 @@
 # toolchain
 
-Shared lint, format, TypeScript, CI and editor settings for the erakor repos (transit-board,
-kinolog, markdown-preview, transit, taime, katremil, alfresco), so they stay in step instead of
-drifting one repo at a time.
+Shared lint, format, TypeScript, CI and editor settings for the erakor repos, so they stay in step
+instead of drifting one repo at a time. `consumers.json` lists the repos that use it.
+
+Tools it configures:
+
+- [oxlint](https://oxc.rs/docs/guide/usage/linter): linting, with eslint-plugin-storybook and a
+  secret env var rule as JS plugins
+- [oxfmt](https://oxc.rs/docs/guide/usage/formatter): formatting, including Tailwind class sorting
+- [TypeScript](https://www.typescriptlang.org/): compiler options for apps, React and Node configs
+- [knip](https://knip.dev/): unused files, exports and dependencies
+- [Storybook](https://storybook.js.org/) with [Playwright](https://playwright.dev/): build, then
+  open every story in Chromium
+- [GitHub Actions](https://docs.github.com/actions): reusable check workflows, file sync, consumer
+  bumps and the consumer doctor
+- [Renovate](https://docs.renovatebot.com/): dependency update policy
+- [swift-format](https://github.com/swiftlang/swift-format): Swift lint
+- [EditorConfig](https://editorconfig.org/), `.gitattributes` and `.nvmrc`: copied into each repo
 
 | What                                                         | Where                                         | How a repo gets it                                                          |
 | ------------------------------------------------------------ | --------------------------------------------- | --------------------------------------------------------------------------- |
