@@ -20,6 +20,10 @@
       "types": "./knip/shadcn.d.mts",
       "default": "./knip/shadcn.mjs"
     },
+    "./knip/storybook": {
+      "types": "./knip/storybook.d.mts",
+      "default": "./knip/storybook.mjs"
+    },
     "./oxfmt": {
       "types": "./oxfmt/index.d.mts",
       "default": "./oxfmt/index.mjs"
@@ -41,13 +45,12 @@
     "eslint-plugin-storybook": "^10.6.8",
     "oxfmt": "^0.79.0",
     "oxlint": "^1.94.0",
-    "storybook": "^10.6.8",
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
+    "eslint-plugin-storybook": ">=10",
     "oxfmt": ">=0.79.0",
-    "oxlint": ">=1.94.0",
-    "eslint-plugin-storybook": ">=10"
+    "oxlint": ">=1.94.0"
   },
   "peerDependenciesMeta": {
     "eslint-plugin-storybook": {

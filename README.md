@@ -4,20 +4,20 @@ Shared lint, format, TypeScript, CI and editor settings for the erakor repos (tr
 kinolog, markdown-preview, transit, taime, katremil, alfresco), so they stay in step instead of
 drifting one repo at a time.
 
-| What                                                         | Where                                    | How a repo gets it                                                          |
-| ------------------------------------------------------------ | ---------------------------------------- | --------------------------------------------------------------------------- |
-| Formatter style (oxfmt)                                      | `oxfmt/index.mjs`                        | `oxfmt.config.ts` spreads it                                                |
-| Lint baseline (oxlint)                                       | `oxlint/base.json`, `oxlint/react.json`  | `.oxlintrc.json` `extends` it                                               |
-| shadcn/ui exemptions (oxlint, knip)                          | `oxlint/shadcn.json`, `knip/shadcn.mjs`  | opt in: see [shadcn/ui](#shadcnui)                                          |
-| Storybook lint (eslint-plugin-storybook)                     | `oxlint/storybook.json`                  | opt in: see [Storybook](#storybook)                                         |
-| Secret env var rule                                          | `oxlint/plugins/secret-env.mjs`          | `jsPlugins` in `.oxlintrc.json`                                             |
-| TypeScript                                                   | `tsconfig/{base,react,node}.json`        | tsconfig `extends`                                                          |
-| Tailwind class sorting (oxfmt)                               | `tailwind()` in `oxfmt/index.mjs`        | `sortTailwindcss: tailwind('src/index.css')`                                |
-| CI checks (JS/TS)                                            | `.github/workflows/node-checks.yml`      | `uses: erakor/toolchain/.github/workflows/node-checks.yml@v1`               |
-| CI checks (Storybook: build, open every story)               | `.github/workflows/storybook-checks.yml` | `uses: erakor/toolchain/.github/workflows/storybook-checks.yml@v1`          |
-| CI checks (Swift: swift-format lint)                         | `.github/workflows/swift-checks.yml`     | `uses: erakor/toolchain/.github/workflows/swift-checks.yml@v1`              |
-| Dependency updates                                           | `renovate/default.json`                  | `renovate.json`: `"extends": ["github>erakor/toolchain//renovate/default"]` |
-| `.editorconfig`, `.gitattributes`, `.nvmrc`, `.swift-format` | `files/`, `swift/`                       | copied by `sync.yml`, as a PR in each repo                                  |
+| What                                                         | Where                                         | How a repo gets it                                                          |
+| ------------------------------------------------------------ | --------------------------------------------- | --------------------------------------------------------------------------- |
+| Formatter style (oxfmt)                                      | `oxfmt/index.mjs`                             | `oxfmt.config.ts` spreads it                                                |
+| Lint baseline (oxlint)                                       | `oxlint/base.json`, `oxlint/react.json`       | `.oxlintrc.json` `extends` it                                               |
+| shadcn/ui exemptions (oxlint, knip)                          | `oxlint/shadcn.json`, `knip/shadcn.mjs`       | opt in: see [shadcn/ui](#shadcnui)                                          |
+| Storybook lint and knip                                      | `oxlint/storybook.json`, `knip/storybook.mjs` | opt in: see [Storybook](#storybook)                                         |
+| Secret env var rule                                          | `oxlint/plugins/secret-env.mjs`               | `jsPlugins` in `.oxlintrc.json`                                             |
+| TypeScript                                                   | `tsconfig/{base,react,node}.json`             | tsconfig `extends`                                                          |
+| Tailwind class sorting (oxfmt)                               | `tailwind()` in `oxfmt/index.mjs`             | `sortTailwindcss: tailwind('src/index.css')`                                |
+| CI checks (JS/TS)                                            | `.github/workflows/node-checks.yml`           | `uses: erakor/toolchain/.github/workflows/node-checks.yml@v1`               |
+| CI checks (Storybook: build, open every story)               | `.github/workflows/storybook-checks.yml`      | `uses: erakor/toolchain/.github/workflows/storybook-checks.yml@v1`          |
+| CI checks (Swift: swift-format lint)                         | `.github/workflows/swift-checks.yml`          | `uses: erakor/toolchain/.github/workflows/swift-checks.yml@v1`              |
+| Dependency updates                                           | `renovate/default.json`                       | `renovate.json`: `"extends": ["github>erakor/toolchain//renovate/default"]` |
+| `.editorconfig`, `.gitattributes`, `.nvmrc`, `.swift-format` | `files/`, `swift/`                            | copied by `sync.yml`, as a PR in each repo                                  |
 
 ## Using it in a JS/TS package
 
@@ -177,7 +177,7 @@ favour of the opt-in.
 
 ## Storybook
 
-A package with Storybook opts in to three pieces. Add `eslint-plugin-storybook` and `playwright`
+A package with Storybook opts in to four pieces. Add `eslint-plugin-storybook` and `playwright`
 to its devDependencies (the smoke test uses the package's own Playwright), then:
 
 `.oxlintrc.json` adds `oxlint/storybook.json`, which runs the Storybook rules on `*.stories.*`
@@ -192,7 +192,20 @@ files and `no-uninstalled-addons` on `.storybook/main.*`:
 }
 ```
 
-A workflow job builds Storybook and opens every story in Chromium:
+`knip.config.ts` spreads `knip/storybook.mjs`, which tells knip the smoke test uses
+`playwright` (knip cannot see it load):
+
+```ts
+import shadcn from '@erakor/toolchain/knip/shadcn'
+import storybook from '@erakor/toolchain/knip/storybook'
+
+const config = { ...shadcn, ...storybook }
+
+export default config
+```
+
+A workflow job builds Storybook with the package's `build-storybook` script and opens every
+story in Chromium:
 
 ```yaml
 jobs:

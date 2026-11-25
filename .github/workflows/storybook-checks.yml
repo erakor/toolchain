@@ -7,8 +7,8 @@
 #       with:
 #         working-directory: frontend   # where package.json is; default '.'
 #
-# The package needs a `build-storybook` script (or names its own in `build-script`) and
-# `playwright` in its devDependencies; the smoke test is the toolchain's `erakor-storybook-smoke`.
+# The package needs a `build-storybook` script that writes to `storybook-static` and `playwright`
+# in its devDependencies; the smoke test is the toolchain's `erakor-storybook-smoke`.
 name: Storybook checks
 
 on:
@@ -22,14 +22,6 @@ on:
         description: Path to .nvmrc, from the repo root.
         type: string
         default: '.nvmrc'
-      build-script:
-        description: The package script that builds Storybook.
-        type: string
-        default: 'build-storybook'
-      output-dir:
-        description: Where that script writes the static Storybook, from working-directory.
-        type: string
-        default: 'storybook-static'
 
 permissions:
   contents: read
@@ -57,15 +49,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Headless runs use the headless shell, a smaller download than full Chromium.
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps --only-shell chromium
 
       - name: Build Storybook
-        env:
-          BUILD_SCRIPT: ${{ inputs.build-script }}
-        run: pnpm run "$BUILD_SCRIPT"
+        run: pnpm run build-storybook
 
       - name: Open every story
-        env:
-          OUTPUT_DIR: ${{ inputs.output-dir }}
-        run: pnpm exec erakor-storybook-smoke "$OUTPUT_DIR"
+        run: pnpm exec erakor-storybook-smoke
