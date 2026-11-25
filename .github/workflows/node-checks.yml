@@ -5,10 +5,11 @@
 #       uses: erakor/toolchain/.github/workflows/node-checks.yml@v1
 #       with:
 #         working-directory: frontend   # where package.json is; default '.'
+#         build: true                       # also run the `build` script; default false
 #
 # Each script runs only if the package defines it (`pnpm run --if-present`), and each runs even
 # when an earlier one failed, so one push reports all of them. Repo-specific steps (Storybook,
-# Playwright, bundle freshness) stay in the repo's own jobs.
+# Playwright, bundle freshness) stay in the repo's own jobs; Storybook has storybook-checks.yml.
 name: Node checks
 
 on:
@@ -22,6 +23,10 @@ on:
         description: Path to .nvmrc, from the repo root.
         type: string
         default: '.nvmrc'
+      build:
+        description: Also run the package's `build` script, after the unit tests.
+        type: boolean
+        default: false
       # The two below exist for the consumer smoke test (smoke.yml); a repo calling this
       # workflow for its own checks leaves them out.
       repository:
@@ -109,3 +114,7 @@ jobs:
       - name: Unit tests
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm run --if-present test
+
+      - name: Build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && inputs.build }}
+        run: pnpm run build

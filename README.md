@@ -1,24 +1,42 @@
 # toolchain
 
-Shared lint, format, TypeScript and editor settings for the erakor repos
-(transit-board, kinolog, markdown-preview, alfresco), so they stay in step instead of drifting one
-repo at a time.
+Shared lint, format, TypeScript, CI and editor settings for the erakor repos, so they stay in step
+instead of drifting one repo at a time. `consumers.json` lists the repos that use it.
 
-| What                                                         | Where                                       | How a repo gets it                                                          |
-| ------------------------------------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------- |
-| Formatter style (oxfmt)                                      | `oxfmt/index.mjs`                           | `oxfmt.config.ts` spreads it                                                |
-| Lint baseline (oxlint)                                       | `oxlint/base.json`, `oxlint/react.json`     | `.oxlintrc.json` `extends` it                                               |
-| Secret env var rule                                          | `oxlint/plugins/secret-env.mjs`             | `jsPlugins` in `.oxlintrc.json`                                             |
-| TypeScript                                                   | `tsconfig/base.json`, `tsconfig/react.json` | tsconfig `extends`                                                          |
-| CI checks (JS/TS)                                            | `.github/workflows/node-checks.yml`         | `uses: erakor/toolchain/.github/workflows/node-checks.yml@v1`               |
-| CI checks (Swift: swift-format lint)                         | `.github/workflows/swift-checks.yml`        | `uses: erakor/toolchain/.github/workflows/swift-checks.yml@v1`              |
-| Dependency updates                                           | `renovate/default.json`                     | `renovate.json`: `"extends": ["github>erakor/toolchain//renovate/default"]` |
-| `.editorconfig`, `.gitattributes`, `.nvmrc`, `.swift-format` | `files/`, `swift/`                          | copied by `sync.yml`, as a PR in each repo                                  |
+Tools it configures:
+
+- [oxlint](https://oxc.rs/docs/guide/usage/linter): linting, with eslint-plugin-storybook and a
+  secret env var rule as JS plugins
+- [oxfmt](https://oxc.rs/docs/guide/usage/formatter): formatting, including Tailwind class sorting
+- [TypeScript](https://www.typescriptlang.org/): compiler options for apps, React and Node configs
+- [knip](https://knip.dev/): unused files, exports and dependencies
+- [Storybook](https://storybook.js.org/) with [Playwright](https://playwright.dev/): build, then
+  open every story in Chromium
+- [GitHub Actions](https://docs.github.com/actions): reusable check workflows, file sync, consumer
+  bumps and the consumer doctor
+- [Renovate](https://docs.renovatebot.com/): dependency update policy
+- [swift-format](https://github.com/swiftlang/swift-format): Swift lint
+- [EditorConfig](https://editorconfig.org/), `.gitattributes` and `.nvmrc`: copied into each repo
+
+| What                                                         | Where                                         | How a repo gets it                                                          |
+| ------------------------------------------------------------ | --------------------------------------------- | --------------------------------------------------------------------------- |
+| Formatter style (oxfmt)                                      | `oxfmt/index.mjs`                             | `oxfmt.config.ts` spreads it                                                |
+| Lint baseline (oxlint)                                       | `oxlint/base.json`, `oxlint/react.json`       | `.oxlintrc.json` `extends` it                                               |
+| shadcn/ui exemptions (oxlint, knip)                          | `oxlint/shadcn.json`, `knip/shadcn.mjs`       | opt in: see [shadcn/ui](#shadcnui)                                          |
+| Storybook lint and knip                                      | `oxlint/storybook.json`, `knip/storybook.mjs` | opt in: see [Storybook](#storybook)                                         |
+| Secret env var rule                                          | `oxlint/plugins/secret-env.mjs`               | `jsPlugins` in `.oxlintrc.json`                                             |
+| TypeScript                                                   | `tsconfig/{base,react,node}.json`             | tsconfig `extends`                                                          |
+| Tailwind class sorting (oxfmt)                               | `tailwind()` in `oxfmt/index.mjs`             | `sortTailwindcss: tailwind('src/index.css')`                                |
+| CI checks (JS/TS)                                            | `.github/workflows/node-checks.yml`           | `uses: erakor/toolchain/.github/workflows/node-checks.yml@v1`               |
+| CI checks (Storybook: build, open every story)               | `.github/workflows/storybook-checks.yml`      | `uses: erakor/toolchain/.github/workflows/storybook-checks.yml@v1`          |
+| CI checks (Swift: swift-format lint)                         | `.github/workflows/swift-checks.yml`          | `uses: erakor/toolchain/.github/workflows/swift-checks.yml@v1`              |
+| Dependency updates                                           | `renovate/default.json`                       | `renovate.json`: `"extends": ["github>erakor/toolchain//renovate/default"]` |
+| `.editorconfig`, `.gitattributes`, `.nvmrc`, `.swift-format` | `files/`, `swift/`                            | copied by `sync.yml`, as a PR in each repo                                  |
 
 ## Using it in a JS/TS package
 
 ```bash
-pnpm add -D oxlint oxfmt "@erakor/toolchain@github:erakor/toolchain#v1.2.1"
+pnpm add -D oxlint oxfmt "@erakor/toolchain@github:erakor/toolchain#v1.5.0"
 ```
 
 `oxfmt.config.ts` (oxfmt finds only `.oxfmtrc.json(c)` and `oxfmt.config.ts`/`.mts`, not `.mjs`):
@@ -30,6 +48,10 @@ const config = { ...base, ignorePatterns: ['dist/'] }
 
 export default config
 ```
+
+oxlint and oxfmt both skip what `.gitignore` lists, so build output (`dist/`,
+`storybook-static/`) needs no `ignorePatterns`; list only files that are committed but not
+formatted or linted by hand (generated or vendored code).
 
 `.oxlintrc.json`:
 
@@ -44,8 +66,40 @@ export default config
 adds (paths, includes, framework plugins). The base targets apps: `moduleResolution: "bundler"`
 and `noEmit: true`. A library that emits, or code that runs under plain Node, overrides both.
 
+Config files that Node runs itself (`vite.config.ts`, a `tsconfig.node.json` project) extend
+`tsconfig/node.json` instead: the base plus `types: ["node"]`, `nodenext` resolution and
+`allowImportingTsExtensions`, which Node's type stripping needs for relative `.ts` imports.
+
+A package that uses Tailwind sorts classes with the shared helper, which also sorts the strings
+passed to `cn()` and `cva()`:
+
+```ts
+import base, { tailwind } from '@erakor/toolchain/oxfmt'
+
+const config = { ...base, sortTailwindcss: tailwind('src/index.css') }
+
+export default config
+```
+
 `package.json` here is `"private": true` on purpose: the package is installed from GitHub, never
 published to npm, so `files` and `exports` still apply.
+
+A repo's workflow calls the reusable one and keeps its own triggers and concurrency. Group pull
+requests by ref so a new push cancels the outdated run, and pushes to `main` by commit so every
+merge keeps its own result:
+
+```yaml
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    uses: erakor/toolchain/.github/workflows/node-checks.yml@<sha> # vX.Y.Z
+```
+
+`node-checks.yml` also runs the package's `build` script when called `with: { build: true }`, so a
+repo whose build is its only extra check needs no job of its own.
 
 The reusable workflow runs the package's own `lint` script as is, so put `--deny-warnings` in that
 script to fail CI on warnings. Don't also pass it on the command line: oxlint rejects the flag twice.
@@ -92,7 +146,7 @@ Pull requests read/write on every repo in `consumers.json`. The bump PR and Reno
 the same lines; merge whichever lands first and the other goes quiet. `pnpm consumers:doctor` needs `gh`
 signed in; `pnpm consumers:bump --dry-run` clones each consumer and shows the diff without pushing.
 
-Pin the package as a `vX.Y.Z` tag (`github:erakor/toolchain#v1.2.1`) so Renovate can update it; a
+Pin the package as a `vX.Y.Z` tag (`github:erakor/toolchain#v1.5.0`) so Renovate can update it; a
 bare commit SHA works for the bump script and the doctor but Renovate leaves it alone. A workflow
 pin is a commit SHA with a `# vX.Y.Z` comment, which Renovate and the bump script both keep.
 
@@ -102,6 +156,82 @@ Change it here and run `pnpm lint && pnpm format:check && pnpm typecheck && pnpm
 (the smoke test runs), merge it, then tag a release (`vX.Y.Z`, and move `v1` for the reusable
 workflow). The tag opens a bump PR in each consumer, Renovate catches any it missed, and
 `sync.yml` opens a PR for copied files.
+
+## shadcn/ui
+
+A package that vendors shadcn/ui components opts in to two configs. Code under
+`components/ui/` is not exempted otherwise, since a repo may keep its own components there.
+
+`.oxlintrc.json` adds `oxlint/shadcn.json` after the React baseline. It turns off the rules the
+stock registry components break, in `**/components/ui/**` and shadcn's `hooks/use-mobile.ts`,
+and tells `label-has-associated-control` that `Input`, `Textarea`, `Checkbox` and `Switch` are
+form controls, so wrapping one in a `<label>` passes:
+
+```json
+{
+  "extends": [
+    "./node_modules/@erakor/toolchain/oxlint/react.json",
+    "./node_modules/@erakor/toolchain/oxlint/shadcn.json"
+  ]
+}
+```
+
+`knip.config.ts` ignores the components' unused exports (unused files and dependencies there are
+still reported):
+
+```ts
+export { default } from '@erakor/toolchain/knip/shadcn'
+```
+
+A package without shadcn needs no knip config: knip's defaults are the baseline.
+
+`oxlint/react.json` still exempts `**/components/ui/**` from `heading-has-content` and
+`anchor-has-content` for every package, as it did before `shadcn.json` existed; v2 drops that in
+favour of the opt-in.
+
+## Storybook
+
+A package with Storybook opts in to four pieces. Add `eslint-plugin-storybook` and `playwright`
+to its devDependencies (the smoke test uses the package's own Playwright), then:
+
+`.oxlintrc.json` adds `oxlint/storybook.json`, which runs the Storybook rules on `*.stories.*`
+files and `no-uninstalled-addons` on `.storybook/main.*`:
+
+```json
+{
+  "extends": [
+    "./node_modules/@erakor/toolchain/oxlint/react.json",
+    "./node_modules/@erakor/toolchain/oxlint/storybook.json"
+  ]
+}
+```
+
+`knip.config.ts` spreads `knip/storybook.mjs`, which tells knip the smoke test uses
+`playwright` (knip cannot see it load):
+
+```ts
+import shadcn from '@erakor/toolchain/knip/shadcn'
+import storybook from '@erakor/toolchain/knip/storybook'
+
+const config = { ...shadcn, ...storybook }
+
+export default config
+```
+
+A workflow job builds Storybook with the package's `build-storybook` script and opens every
+story in Chromium:
+
+```yaml
+jobs:
+  storybook:
+    uses: erakor/toolchain/.github/workflows/storybook-checks.yml@<sha> # vX.Y.Z
+```
+
+The same smoke test runs locally after a build, from the package:
+`pnpm build-storybook && pnpm exec erakor-storybook-smoke` (the folder defaults to
+`storybook-static`). `.storybook/main.ts` and `preview.tsx` stay in each repo: frameworks
+(`@storybook/nextjs-vite`, `@storybook/react-vite`) and theme switching differ, and what is left
+in common is a stories glob.
 
 ## Gotchas found while migrating
 

@@ -1,0 +1,5 @@
+{
+  "name": "storybook-fixture",
+  "private": true,
+  "devDependencies": { "@storybook/react-vite": "*" }
+}

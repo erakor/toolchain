@@ -2,6 +2,6 @@
 // so the `types` condition and oxfmt/index.d.mts are checked.
 import type { OxfmtConfig } from 'oxfmt'
 
-import base from '@erakor/toolchain/oxfmt'
+import base, { tailwind } from '@erakor/toolchain/oxfmt'
 
-export const config: OxfmtConfig = { ...base }
+export const config: OxfmtConfig = { ...base, sortTailwindcss: tailwind('src/index.css') }

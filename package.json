@@ -1,16 +1,29 @@
 {
   "name": "@erakor/toolchain",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
-  "description": "Shared lint, format and TypeScript settings for the erakor repos.",
+  "description": "Shared lint, format, TypeScript and CI settings for the erakor repos.",
   "license": "MIT",
   "files": [
+    "bin",
+    "knip",
     "oxfmt",
     "oxlint",
     "tsconfig"
   ],
   "type": "module",
+  "bin": {
+    "erakor-storybook-smoke": "./bin/storybook-smoke.mjs"
+  },
   "exports": {
+    "./knip/shadcn": {
+      "types": "./knip/shadcn.d.mts",
+      "default": "./knip/shadcn.mjs"
+    },
+    "./knip/storybook": {
+      "types": "./knip/storybook.d.mts",
+      "default": "./knip/storybook.mjs"
+    },
     "./oxfmt": {
       "types": "./oxfmt/index.d.mts",
       "default": "./oxfmt/index.mjs"
@@ -29,13 +42,20 @@
     "typecheck": "tsc"
   },
   "devDependencies": {
+    "eslint-plugin-storybook": "^10.6.8",
     "oxfmt": "^0.79.0",
     "oxlint": "^1.94.0",
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
+    "eslint-plugin-storybook": ">=10",
     "oxfmt": ">=0.79.0",
     "oxlint": ">=1.94.0"
+  },
+  "peerDependenciesMeta": {
+    "eslint-plugin-storybook": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=26"
